@@ -5,7 +5,7 @@
     <artifactId>CSA_JAX-RS</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>war</packaging>
-    <name>CSA_JAX-RS-1.0-SNAPSHOT</name>
+    <name>CSA_JAX-RS</name>
     
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
