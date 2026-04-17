@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -88,5 +89,22 @@ public class SensorRoom{
         }
         
         return Response.ok(room).build();
+    }
+    
+    @DELETE
+    @Path("/{roomId}")
+    public Response deleteRoomById(@PathParam("roomId") String id){
+        if(DATA.removeRoom(id)){
+            return Response.noContent()
+                    .build();
+        }
+        
+        Map<String, String> errorMap = new HashMap<>();
+        errorMap.put("error", "Bad Request");
+        errorMap.put("message", "A room with the given ID does not exist or the room has active sensors");
+
+        return Response.status(Response.Status.BAD_REQUEST)
+                .entity(errorMap)
+                .build();
     }
 }
