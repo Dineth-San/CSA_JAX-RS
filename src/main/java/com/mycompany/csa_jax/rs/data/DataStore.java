@@ -45,17 +45,18 @@ public class DataStore {
     public Room getRoom(String id){
         return rooms.get(id);
     }
-    
+
     public boolean removeRoom(String id){
         Room room = rooms.get(id);
-        if(room == null || !room.getSensorIds().isEmpty()){
-            return false;
-        }
+        
         for(String sensorId : room.getSensorIds()){
-            if(sensors.get(sensorId).getType().equalsIgnoreCase("active")){
+            Sensor s = sensors.get(sensorId);
+            if(s != null && s.getStatus().equalsIgnoreCase("active")){
                 return false;
             }
         }
+        
+        rooms.remove(id);
         return true;
     }
 

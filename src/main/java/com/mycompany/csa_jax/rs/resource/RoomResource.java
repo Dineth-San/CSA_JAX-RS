@@ -5,6 +5,8 @@
 package com.mycompany.csa_jax.rs.resource;
 
 import com.mycompany.csa_jax.rs.data.DataStore;
+import com.mycompany.csa_jax.rs.exceptions.LinkedResourceNotFoundException;
+import com.mycompany.csa_jax.rs.exceptions.RoomNotEmptyException;
 import com.mycompany.csa_jax.rs.models.Room;
 import java.net.URI;
 import java.util.ArrayList;
@@ -28,7 +30,7 @@ import javax.ws.rs.core.UriInfo;
  * @author ASUS
  */
 @Path("/rooms")
-public class SensorRoom{
+public class RoomResource{
     
     private final DataStore DATA = DataStore.getInstance();
     
@@ -36,15 +38,6 @@ public class SensorRoom{
     @Produces(MediaType.APPLICATION_JSON)
     public Response getAllRooms(){
         List<Room> roomList = new ArrayList<>(DATA.getRooms().values());
-        
-        if (roomList.isEmpty()){
-            Map<String, String> errorMap = new HashMap<>();
-            errorMap.put("error", "No rooms found");
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity(errorMap)
-                    .build();
-        }
-        
         return Response.ok(roomList).build();
     }
     
@@ -53,8 +46,9 @@ public class SensorRoom{
     @Produces(MediaType.APPLICATION_JSON)
     public Response newRoom(Room room, @Context UriInfo uriInfo){
         
+        String roomId = room.getId();
         // check for duplicated rooms or empty ids
-        if(room.getId() == null || room.getId().trim().isEmpty() || DATA.getRoom(room.getId()) != null){
+        if(roomId == null || roomId.trim().isEmpty() || DATA.getRoom(roomId) != null){
             Map<String, String> errorMap = new HashMap<>();
             errorMap.put("error", "Bad Request");
             errorMap.put("message", "Room ID is mandatory, and cannot be duplicated");
@@ -81,11 +75,7 @@ public class SensorRoom{
         Room room = DATA.getRoom(id);
           
         if (room == null){
-            Map<String, String> errorMap = new HashMap<>();
-            errorMap.put("error", "A room with the given ID does not exist");
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity(errorMap)
-                    .build();
+            throw new LinkedResourceNotFoundException("Room " + id + " does not exist");
         }
         
         return Response.ok(room).build();
@@ -94,17 +84,25 @@ public class SensorRoom{
     @DELETE
     @Path("/{roomId}")
     public Response deleteRoomById(@PathParam("roomId") String id){
-        if(DATA.removeRoom(id)){
-            return Response.noContent()
+        
+        Room room = DATA.getRoom(id);
+        
+        // return a 404 not found if the given id does not return a valid Froom
+        if (room == null) {
+            Map<String, String> errorMap = new HashMap<>();
+            errorMap.put("error", "Not Found");
+            errorMap.put("message", "A room with the given ID does not exist");
+            
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(errorMap)
                     .build();
         }
         
-        Map<String, String> errorMap = new HashMap<>();
-        errorMap.put("error", "Bad Request");
-        errorMap.put("message", "A room with the given ID does not exist or the room has active sensors");
-
-        return Response.status(Response.Status.BAD_REQUEST)
-                .entity(errorMap)
+        if(!DATA.removeRoom(id)){
+            throw new RoomNotEmptyException("Cannot delete room " + id + ". It is occupied by sensors");
+        }
+        
+        return Response.noContent()
                 .build();
     }
 }

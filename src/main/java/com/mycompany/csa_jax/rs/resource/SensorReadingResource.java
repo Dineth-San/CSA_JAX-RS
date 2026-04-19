@@ -5,6 +5,9 @@
 package com.mycompany.csa_jax.rs.resource;
 
 import com.mycompany.csa_jax.rs.data.DataStore;
+import com.mycompany.csa_jax.rs.exceptions.LinkedResourceNotFoundException;
+import com.mycompany.csa_jax.rs.exceptions.SensorUnavailableException;
+import com.mycompany.csa_jax.rs.models.Sensor;
 import com.mycompany.csa_jax.rs.models.SensorReading;
 import java.net.URI;
 import java.util.List;
@@ -23,7 +26,7 @@ import javax.ws.rs.core.UriInfo;
  */
 public class SensorReadingResource {
     
-    private String sensorId;
+    private final String sensorId;
     private final DataStore DATA = DataStore.getInstance();
     
     public SensorReadingResource(String sensorId){
@@ -34,6 +37,11 @@ public class SensorReadingResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Response getHistory(){
         
+        Sensor sensor = DATA.getSensor(sensorId);
+        if(sensor == null){
+            throw new LinkedResourceNotFoundException("A sensor with the given ID " + sensorId + " does not exist");
+        }
+        
         List<SensorReading> sensorReadings = DATA.getReadingsById(sensorId);
         
         return Response.ok(sensorReadings)
@@ -43,6 +51,15 @@ public class SensorReadingResource {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     public Response appendNewReading(SensorReading newReading, @Context UriInfo uriInfo){
+        
+        Sensor sensor = DATA.getSensor(sensorId);
+        if(sensor == null){
+            throw new LinkedResourceNotFoundException("A sensor with the given ID " + sensorId + " does not exist");
+        }
+        
+        if(sensor.getStatus().equalsIgnoreCase("maintenance")){
+            throw new SensorUnavailableException("The selected sensor is under maintenance");
+        }
         
         DATA.addReading(this.sensorId, newReading);
         DATA.getSensor(this.sensorId).setCurrentValue(newReading.getValue());

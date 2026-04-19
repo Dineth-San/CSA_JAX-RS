@@ -5,6 +5,7 @@
 package com.mycompany.csa_jax.rs.resource;
 
 import com.mycompany.csa_jax.rs.data.DataStore;
+import com.mycompany.csa_jax.rs.exceptions.LinkedResourceNotFoundException;
 import com.mycompany.csa_jax.rs.models.Room;
 import com.mycompany.csa_jax.rs.models.Sensor;
 import java.net.URI;
@@ -43,22 +44,28 @@ public class SensorResource {
         Room room = DATA.getRoom(sensor.getRoomId());
         
         if(room == null){
-            Map<String, String> errorMap = new HashMap<>();
-            errorMap.put("error", "Bad Request");
-            errorMap.put("message", "The given room does not exist");
+            throw new LinkedResourceNotFoundException("Room " + sensor.getRoomId() + " does not exist");
+        }
+        
+        // check for null/empty id values and do not allow overriding sensor data
+        String sensorId = sensor.getId();
+        if(sensorId == null || sensorId.trim().isEmpty() || DATA.getSensor(sensorId) != null){
+            Map<String, String> errMap = new HashMap<>();
+            errMap.put("error", "Bad Request");
+            errMap.put("message", "Sensor ID cannot be null and Sensor data cannot be overriden");
             
-            Response.status(Response.Status.BAD_REQUEST)
-                    .entity(errorMap)
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(errMap)
                     .build();
         }
         
         DATA.addSensor(sensor);
         List<String> newSensorList = new ArrayList<>(room.getSensorIds());
-        newSensorList.add(sensor.getId());
+        newSensorList.add(sensorId);
         room.setSensorIds(newSensorList);
                 
         URI locationUri = uriInfo.getAbsolutePathBuilder()
-                .path(sensor.getId())
+                .path(sensorId)
                 .build();
         
         return Response.created(locationUri)
@@ -89,9 +96,14 @@ public class SensorResource {
                 .build();
     }
     
-        @Path("/{sensorId}/readings")
-        public SensorReadingResource getSensorReadingResource(@PathParam("sensorId") String sensorId){
-            return new SensorReadingResource(sensorId);
+    @Path("/{sensorId}/readings")
+    public SensorReadingResource getSensorReadingResource(@PathParam("sensorId") String sensorId){
+        
+        if(DATA.getSensor(sensorId) == null){
+            throw new LinkedResourceNotFoundException("A Sensor with ID " + sensorId + " does not exist");
         }
+        
+        return new SensorReadingResource(sensorId);
+    }
 
 }
