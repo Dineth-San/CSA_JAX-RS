@@ -50,6 +50,7 @@ public class SensorReadingResource {
     
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     public Response appendNewReading(SensorReading newReading, @Context UriInfo uriInfo){
         
         Sensor sensor = DATA.getSensor(sensorId);

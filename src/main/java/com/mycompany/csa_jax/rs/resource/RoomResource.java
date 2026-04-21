@@ -83,11 +83,12 @@ public class RoomResource{
     
     @DELETE
     @Path("/{roomId}")
+    @Produces(MediaType.APPLICATION_JSON)
     public Response deleteRoomById(@PathParam("roomId") String id){
         
         Room room = DATA.getRoom(id);
         
-        // return a 404 not found if the given id does not return a valid Froom
+        // return a 404 not found if the given id does not return a valid room
         if (room == null) {
             Map<String, String> errorMap = new HashMap<>();
             errorMap.put("error", "Not Found");
